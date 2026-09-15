@@ -41,6 +41,7 @@ namespace Notepads.Controls.TextEditor
 
         private const char RichEditBoxDefaultLineEnding = '\r';
         private const char RegexDefaultLineEnding = '\n';
+        private const int MaximumUnwrappedLineLength = 32 * 1024;
 
         private bool _isDocumentLinesCachePendingUpdate = true;
         private string[] _documentLinesCache; // internal copy of the active document text in array format
@@ -493,6 +494,12 @@ namespace Notepads.Controls.TextEditor
         public void SetText(string text)
         {
             text = text ?? string.Empty;
+
+            if (TextWrapping == TextWrapping.NoWrap && ContainsOverlongLine(text))
+            {
+                TextWrapping = TextWrapping.Wrap;
+            }
+
             _document = NormalizeRichEditBoxLineEndings(text);
             _documentLinesCache = null;
             _documentLineStartOffsets = null;
@@ -507,6 +514,24 @@ namespace Notepads.Controls.TextEditor
             {
                 _isBulkSettingText = false;
             }
+        }
+
+        private static bool ContainsOverlongLine(string text)
+        {
+            var lineLength = 0;
+            foreach (var character in text)
+            {
+                if (character == '\r' || character == '\n')
+                {
+                    lineLength = 0;
+                }
+                else if (++lineLength > MaximumUnwrappedLineLength)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
